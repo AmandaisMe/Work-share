@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>aa</title>
+    <style type="text/css">
+	html,body{overflow:hidden;height:100%;}
+	body,div,p{margin:0;padding:0;}
+	body{background:#000;font:12px/1.5 arial;color:#7A7A7A;}
+	a{text-decoration:none;outline:none;}
+	#tips{position:absolute;width:100%;height:50px;text-align:center;background:#171717;border:2px solid #484848;}
+	#tips{top:0;border-width:0 0 2px;}
+	#tips a{font:14px/30px arial;color:#FFF;background:#F06;display:inline-block;margin:10px 5px 0;padding:0 15px;border-radius:15px;}
+
+	.fire {
+		width: 3px;
+		height: 10px;
+		background: white;
+		position: absolute;top:100%;
+	} 
+	.spark {
+		position: absolute;
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+	}
+	</style>
+    <script src="common.js"></script>
+    <script>
+    
+        /*
+		放烟花效果
+			思路：
+			1）描述对象
+				* 烟花
+					属性：位置
+					方法：移动，爆炸，移除
+				* 烟灰
+					属性：初始坐标，颜色，水平/垂直速度
+					方法：移动，移除
+			2）烟花飞入阶段
+				1>给document绑定点击事件,得到点击的坐标(x,y)
+				2>生成一个烟花：left = x;
+				3>烟花飞入：top = y; animate()
+
+			3）烟花爆炸阶段
+				* 移除烟花div;
+				* 生成50烟灰
+	 */
+
+        //当点屏幕时获取烟花的坐标
+        window.onload = function(){
+        document.onclick = function(e) {
+        	
+                e = e || window.event;
+
+                new Firework(e.clientX,e.clientY);
+            }
+            //构造函数
+        function Firework(x,y){
+            this.x = x;
+            this.y = y;
+
+            //执行初始化
+            this.init();
+        }
+        // 初始化
+        Firework.prototype.init = function(){
+			var fire = document.createElement('div');
+			fire.className = 'fire';
+			fire.style.left = this.x + 'px';
+
+
+			this.ele = fire;
+
+			// 把烟花节点写入页面
+			document.body.appendChild(fire);
+
+			// 烟花飞入
+			this.move();
+		}
+            //移动
+       Firework.prototype.move = function(){
+			var self = this;
+			animate(this.ele,{top:this.y,height:3},function(){
+				// 爆炸阶段
+				self.boom();
+
+				
+			});
+		}
+
+        //移动
+     Firework.prototype.boom = function(){
+				
+				// 移除烟花
+				this.remove();
+
+				// 生成50个烟灰
+				for(var i=0;i<50;i++){
+					new Spark(this.x,this.y);
+				}
+		}
+            //移除
+
+        Firework.prototype.remove = function() {
+            this.ele.parentElement.removeChild(this.ele);
+        }
+
+        //创建烟花效果
+        function Spark(x,y){
+			this.x = x;
+			this.y = y;
+			this.hspeed = randomNum(-20,20);
+			this.vspeed = randomNum(-10,10);
+
+			this.init();
+		}
+
+        Spark.prototype.init = function() {
+
+            var spark = document.createElement("div");
+            spark.className = "spark";
+
+            //获取spark的初始值
+            spark.style.left = this.x + "px";
+            spark.style.top = this.y + "px";
+
+            spark.style.backgroundColor = randomColor();
+
+           // 利用this传递spark
+			this.ele = spark;
+
+			document.body.appendChild(spark);
+
+			// 烟灰移动
+			this.move();
+        }
+        Spark.prototype.move = function() {
+
+               var self=this;
+               var spark = self.ele;
+
+             // 不断改变spark的top,left
+			self.timer = setInterval(function(){
+				spark.style.left = spark.offsetLeft + self.hspeed + 'px';
+
+				// 判断移除条件
+				if(spark.offsetLeft < -spark.offsetWidth || spark.offsetLeft > window.innerWidth || spark.offsetTop > window.innerHeight){
+
+					self.remove();
+				}
+
+				// 实现抛物运动的关键vspeed++
+				spark.style.top = spark.offsetTop + self.vspeed++ + 'px';
+			},50);
+		}
+            //移除效果
+        Spark.prototype.remove = function() {
+            this.ele.parentElement.removeChild(this.ele);
+            clearInterval(this.timer);
+        }
+
+    }
+    </script>
+</head>
+
+<body>
+	<div id="tips"><a id="auto" href="javascript:;" class="">自动放烟花</a></div>
+</body>
+
+</html>
