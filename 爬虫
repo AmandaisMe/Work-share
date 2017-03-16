@@ -1,0 +1,92 @@
+//用于请求文件或者创建服务器
+var http = require('http');
+//读取数据 fs模块
+var fs = require('fs');
+//调用cheerio模块 类似jq的文件 可以使用jq方法获取数据
+var cheerio = require('cheerio');
+//调用mysql数据库 用于插入数据
+var mysql = require('mysql');
+//数据库连接
+var connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'h51610',
+    password: '123456',
+    database: 'h5test'
+});
+
+connection.connect();
+
+//执行数据插入
+//获取网站数据 使用回调函数方便传入不同的数据
+function download(url,callback){
+
+	http.get(url,function(res){
+		var data =[];
+		res.on('data',function(chunk){
+			data += chunk;
+		})
+		res.on('end',function(){
+			//当函数完成是执行下一步download function
+			callback(data)
+			// console.log(imgsrc)
+		})
+	})
+}
+download('http://www.zcool.com.cn/',function(data){
+	//将获取回来的网页交给cheerio处理
+	var $ = cheerio.load(data)
+	//定义一个空数据
+	var imgSrc = [];
+
+	//利用遍历获取src
+	$('img').each(function(index,ele){
+		// console.log(ele)
+		// console.log($(ele).attr('src'))
+		//获取所有的src连接 可把链接插入数据库中
+		var src = $(ele).attr('src');
+		//执行插入数据库
+		connection.query('INSERT INTO `crawler`(`src`) VALUES ("'+src+'")',function(error,results,fields){
+			// console.log(results)
+		})
+
+		imgSrc.push(src);
+	})
+	//执行下载图片
+	downloadimg(imgSrc)
+	// console.log(imgSrc)
+	// console.log(imgsrc)
+})
+//执行下载函数
+	var i = 0;
+	function downloadimg (imgSrc){
+		var length = imgSrc.length;
+		// 创建一个可以写入的流，写入到文件夹 images 中
+		var writerStream = fs.createWriteStream('images/'+i+'.jpg');
+		http.get(imgSrc[i],function(res){
+				res.pipe(writerStream);
+				if(i<length){
+					i++;
+					downloadimg(imgSrc)
+				}else{
+					return;
+				}
+		})
+	}
+
+var data = '';
+
+var readerStream = fs.createReadStream('index.txt');
+// 处理流事件
+readerStream.on('data', function(chunk) {
+    data += chunk;
+});
+//读取index.txt文件
+readerStream.on('end', function() {
+    console.log(data)
+})
+
+//创建一个服务器
+http.createServer(function(request, response) {
+    response.end('hello world!')
+}).listen(4567)
+console.log('服务器开启')
